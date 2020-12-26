@@ -70,8 +70,8 @@ Comparaison des différentes données sièges et remplissage
 
 
 from bokeh.plotting import figure, output_file, show
-#fqms = fqms[fqms['Date du vol'].notna()].reset_index(drop = True)
-#fqms = fqms[fqms['Date du vol'].str.contains('20')].reset_index(drop = True)
+fqms = fqms[fqms['Date du vol'].notna()].reset_index(drop = True)
+fqms = fqms[fqms['Date du vol'].str.contains('20')].reset_index(drop = True)
 
 fqms = fqms[fqms['NB Sieges specif']!='nc']
 
