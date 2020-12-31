@@ -1,0 +1,11 @@
+On a les fichiers : fqm_[1-53]_2015, fqm_[1-52]_2016 et fqm_[1-41]_2017
+On a donc les estimations depuis le 01/01/2015 jusqu'au 22/10/2017
+
+Fichiers enlevés de la concaténation pour cause d'erreur : 
+    - fqm_35_2017 : pas d'estimations ... et d'onglet FQM_Definitive
+    - fqm_12_2015 : pas de colonne LF%
+    
+Autres problèmes rencontrés dans les FQMs :    
+    - fqm_13_2015 : réglé, il y avait un tableau supplémentaire à supprimer en bas du tableau
+    - fqm_15_2017 : il manque 2365 valeurs de LF% et Pax Estimés 
+    - fqm_15_2017 et fqm_34_2017 : dates équivalentes étranges (00/01/1900)
