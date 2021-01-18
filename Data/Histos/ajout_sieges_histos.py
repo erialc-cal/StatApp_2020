@@ -1,5 +1,5 @@
 """
-Ajout du nombre de sièges (provenant des FQMs) aux données réelles (provenant des histos) 
+Ajout du nombre de sièges estimés (provenant des FQMs) aux données réelles (provenant des histos) 
 """
 
 import pandas as pd
