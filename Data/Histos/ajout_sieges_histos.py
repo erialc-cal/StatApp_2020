@@ -1,5 +1,5 @@
 """
-Ajout du nombre de sièges estimés (provenant des FQMs) aux données réelles (provenant des histos) 
+Ajout du nombre de sièges (provenant des FQMs) aux données réelles (provenant des histos) 
 """
 
 import pandas as pd
@@ -59,6 +59,7 @@ auxquels on rajoute la partie des histos que l'on a pas pu compléter histos_inc
 """
 
 histos = pd.concat([histos_complet_1, histos_complet_2, histos_incomplet_2])
+# --> seules 1 075 644 de valeurs de sièges ont pu être complétées
 
 histos.to_csv("histos_sieges.csv",encoding = 'utf-8')
 
