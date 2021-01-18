@@ -1,5 +1,5 @@
 """
-Création de bases de références à partir des FQMS :
+Création de bases de références du nombre de sièges à partir des estimations des FQMS :
     
     - une base "base_ref_1" contenant le nombre moyens de sièges par type avion et compagnie
     - une base "base_ref_2" contenant le nombre moyens de sièges par type avion seulement
