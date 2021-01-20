@@ -59,7 +59,18 @@ auxquels on rajoute la partie des histos que l'on a pas pu compléter histos_inc
 """
 
 histos = pd.concat([histos_complet_1, histos_complet_2, histos_incomplet_2])
-# --> seules 1 075 644 de valeurs de sièges ont pu être complétées
+
+
+if __name__ == '__main__':
+    valeurs_tot = histos['Numéro de vol'].count()
+    valeurs_renseignées = histos['Sièges Corrections_ICI'].count()
+
+    print("Nombre de valeurs de sièges renseignés :",valeurs_renseignées,"(sur ",valeurs_tot," soit ",valeurs_renseignées*100/valeurs_tot,"% )")
+    # --> seules 1 075 644 de valeurs de sièges ont pu être complétées (sur 5 007 230, soir 21,5%)
+    
+    print("Nombre de types avions non référencés :",histos_incomplet_2['Type avion'].drop_duplicates().count())
+    # --> 111 types avions n'ont pas d'estimations du nombre de sièges dispos...
+
 
 histos.to_csv("histos_sieges.csv",encoding = 'utf-8')
 
