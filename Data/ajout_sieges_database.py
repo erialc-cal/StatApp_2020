@@ -27,6 +27,14 @@ On utilise la base de référence base_ref_2
 database = database.merge(base_ref_2,how='left', on=['TypAv'])
 
 
+
+"""
+On peut ajouter la création d'une estiamtion du taux de remplissage des vols 'Coeff_Rempl'
+"""
+
+database['Coeff_Rempl'] = database['PAX']/database['Sièges Corrections_ICI']
+
+
 """
 Ensuite, on exporte la base complétée
 """
@@ -53,5 +61,6 @@ database_2016 = database[database['Date']>np.datetime64('2015-12-31')]
 database_2016 = database_2016[database_2016['Date']<np.datetime64('2017-01-01')]
 
 database_2016.to_csv("database_2016.csv",encoding = 'utf-8')
+
 
     
