@@ -2,6 +2,18 @@
 Implémentation du modèle Non-paramétrique
 """
 
+import os
+import sys
+
+# En supposant qu'on parte du dossier où se trouve le fichier Modele_NP.py
+
+# ajout pour le path : on pointe sur le dossier Data pour charger les fichiers, plus besoin de recharger les fichiers à chaque fois
+
+print(os.getcwd()) #doit renvoyer le chemin du dossier StatApp_2020
+
+DATA_DIR = os.path.normpath(os.getcwd() + os.sep + os.pardir + os.path.abspath('/Data'))
+
+
 import math
 from datetime import timedelta
 
@@ -106,10 +118,10 @@ def previsions_NP (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, tailleBl
     
 # Test sur le faisceau National pour les départs : 
 
-database = pd.read_csv("database_sieges.csv",low_memory=False,decimal=',')
+database = pd.read_csv(os.path.join(DATA_DIR, "database_sieges.csv"),low_memory=False,decimal=',')
 database = database.astype({'Date': 'datetime64[ns]'})
 
-Calendrier = pd.read_csv('Calendrier.csv', dayfirst = True , sep
+Calendrier = pd.read_csv(os.path.join(DATA_DIR,'Calendrier/Calendrier.csv'), dayfirst = True , sep
 = ';' , parse_dates = ['Date'])
 
 
