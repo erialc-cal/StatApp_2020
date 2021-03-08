@@ -13,12 +13,14 @@ Le code crée alors un dataFrame qui contient les prédictions de nombre de pass
 import pandas as pd
 from datetime import timedelta
 
+from Modele_NP_final import previsions_NP
+
 
 dateDebMod = pd.to_datetime("2007-01-01")
 dateFinMod = pd.to_datetime("2016-01-15")
 
-hPrev = 30
-
+horizonsPrev = [7,30]
+            
 
 
 if __name__ == '__main__':
@@ -30,20 +32,27 @@ if __name__ == '__main__':
     Calendrier = pd.read_csv("Calendrier.csv", dayfirst = True , sep = ';' , parse_dates = ['Date'])
 
     histoMod = database[(database['Date']>=dateDebMod) & (database['Date']<=dateFinMod)]
-
-    histoPrev = database[(database['Date']>dateFinMod) & (database['Date']<=dateFinMod+timedelta(days = hPrev))]
     
-
-    for faisceau in ['National', 'Schengen', 'Autre UE', 'International', 'Dom Tom'] :
-        for mvt in ['Arrivée', 'Départ'] :
+    for hPrev in horizonsPrev :
+        
+        histoPrev = database[(database['Date']>dateFinMod) & (database['Date']<=dateFinMod+timedelta(days = hPrev))]
+    
+        Prev_NP = pd.DataFrame()
+    
+        for faisceau in ['National', 'Schengen', 'Autre UE', 'International', 'Dom Tom'] :
+            for mvt in ['Arrivée', 'Départ'] :
             
-            histoMod_2 = histoMod[(histoMod['Faisceau']==faisceau) & (histoMod['ArrDep']==mvt)]
+                histoMod_2 = histoMod[(histoMod['Faisceau']==faisceau) & (histoMod['ArrDep']==mvt)]
            
-            # Modèle Non-Paramétrique :
-            from Modele_NP import previsions_NP
-            prev_NP = previsions_NP(histoMod_2, Calendrier, dateDebMod, dateFinMod, hPrev)
-            histoPrev = pd.concat([histoPrev,prev_NP])
+                # Modèle Non-Paramétrique :
 
+                prev_NP = previsions_NP(histoMod_2, Calendrier, dateDebMod, dateFinMod, hPrev)
+                Prev_NP = pd.concat([Prev_NP, prev_NP],ignore_index=True)
 
-histoPrev.to_csv("Previsions_"+str(hPrev)+"j.csv")
+            
+        # Ajout des prévisions du modèle NP à histoPrev           
+        histoPrev = pd.concat([histoPrev.set_index(['Date','Faisceau','ArrDep']),Prev_NP.set_index(['Date','Faisceau','ArrDep'])],axis=1)
+        histoPrev = histoPrev.reset_index()
+
+        histoPrev.to_csv("Previsions_"+str(hPrev)+"j.csv")
 
