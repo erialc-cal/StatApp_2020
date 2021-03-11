@@ -5,6 +5,7 @@ Created on Sat Mar  6 22:06:55 2021
 
 @author: victorhuynh
 """
+
 #Importation des modules nécessaires 
 import numpy as np
 import pandas as pd
@@ -15,8 +16,6 @@ from statsmodels.tsa.arima_model import ARIMA
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 
-
-df = pd.read_csv("/Users/victorhuynh/Downloads/database_sieges.csv", parse_dates = ['Date'], index_col = ['Date'])
 
 def test_statio(serie, variable):
     
@@ -41,12 +40,16 @@ def test_statio(serie, variable):
         print('\t{}: {}'.format(key, value))
         
 
-def simulation_ARIMA(variable,p,d,q): 
-#Il faut saisir la variable qu'on souhaite prédire, et les paramètres ARIMA
+def simulation_ARIMA(variable,type_mouvement,faisceau,p,d,q): 
+#Il faut saisir la variable qu'on souhaite prédire, le faisceau concerné, le type de mouvement (A/D) et les paramètres ARIMA
 
+    df = pd.read_csv("/Users/victorhuynh/Downloads/database_sieges.csv", parse_dates = ['Date'], index_col = ['Date'])
+    df[~(df.isin([pd.to_datetime('2010-04-18'),pd.to_datetime('2010-04-19')]))]
+    df = df[df['Faisceau'] == faisceau]
+    df = df[df['ArrDep'] == type_mouvement]
+    
     df1 = df[[variable]]
     df1 = df.groupby('Date').agg({variable:'mean'})
-    df1 = df1.drop([pd.to_datetime('2010-04-18'),pd.to_datetime('2010-04-19')])
     #On retire ces deux dates où le trafic est nul
         
     df_log = np.log(df1)
