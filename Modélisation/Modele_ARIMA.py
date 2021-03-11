@@ -81,4 +81,7 @@ def simulation_ARIMA(variable,p,d,q):
     plt.plot(predictions_ARIMA)
     #On compare prédiction et réalité, mais cette fois avec les valeurs de base
     
+    return(predictions_ARIMA)
+    #La fonction retourne un dataframe avec les données prédites par ARIMA
+    
 #Exemple d'exécution : simulation_ARIMA('PAX',2,1,2)
