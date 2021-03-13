@@ -13,7 +13,7 @@ import sys
 
 # ajout pour le path : on pointe sur le dossier Data pour charger les fichiers, plus besoin de recharger les fichiers à chaque fois
 
-print(os.getcwd()) #doit renvoyer le chemin du dossier StatApp_2020
+print(os.getcwd()) #doit renvoyer le chemin dans le dossier StatApp_2020
 
 DATA_DIR = os.path.normpath(os.getcwd() + os.sep + os.pardir + os.path.abspath('/Data'))
 
@@ -80,7 +80,7 @@ import pywt
 print((cA, cD))
 
 def coeff_dissymetrie(i, j):
-    return 1/(2**(len(cD[i]))) * ((cD[i]-cD[j])**2).sum()
+    return 1/(2**len(cD[i])) * ((cD[i]-cD[j])**2).sum()
 
 #erreur 365 ? due au as_strided ?
 
@@ -97,7 +97,7 @@ dissym_rev=pd.DataFrame(np.array(dissym)[-1].reshape(1,-1))
 
   #  LastBloc_CR = pd.DataFrame(np.array(Blocs_CR)[-1].reshape(1,-1))
 distances = np.sum((np.array(dissym_rev)-np.array(dissym[:-1]))**2,axis=1)
-weights = pd.DataFrame( (1/math.sqrt(2*math.pi)**len(dissym)) * np.exp(- distances / (2*h)))
+weights =  (1/math.sqrt(2*math.pi)**len(dissym)) * np.exp(- distances / (2*h))
     
 
 

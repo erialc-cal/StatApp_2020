@@ -9,11 +9,13 @@ Pour l'utiliser, modifier :
     
 Le code crée alors un dataFrame qui contient les prédictions de nombre de passagers, avec le réalisé et les prédictions des FQMs
 """
-
+import os
 import pandas as pd
 from datetime import timedelta
 
 from Modele_NP_final import previsions_NP
+DATA_DIR = os.path.normpath(os.getcwd() + os.sep + os.pardir + os.path.abspath('/Data'))
+
 
 
 dateDebMod = pd.to_datetime("2007-01-01")
@@ -25,11 +27,16 @@ horizonsPrev = [7,30]
 
 if __name__ == '__main__':
     
-    database = pd.read_csv("database_sieges.csv",low_memory=False,decimal=',')
-    database = database.astype({'Date': 'datetime64[ns]','PAX_FQM':'float','Sièges Corrections_ICI':'float','Coeff_Rempl':'float','Coeff_Rempl_FQM':'float'})
+    database = pd.read_csv(os.path.join(DATA_DIR, "database_sieges.csv"),low_memory=False,decimal=',')
+    
+    database = database.astype({'Date': 'datetime64[ns]','PAX_FQM':'float','Sièges Corrections_ICI':'float','Coeff_Rempl_FQM':'float'})
+   
+    # Rajout de Coeff_Rempl (suppression dans le astype)
+    database['Coeff_Rempl']=database['PAX'].div(database['Sièges Corrections_ICI'])
+    
     database = database.groupby(['Date','Faisceau','ArrDep']).agg({'PAX':'sum','PAX_FQM':'sum','Sièges Corrections_ICI':'sum','Coeff_Rempl':'mean','Coeff_Rempl_FQM':'mean'}).reset_index()
 
-    Calendrier = pd.read_csv("Calendrier.csv", dayfirst = True , sep = ';' , parse_dates = ['Date'])
+    Calendrier = pd.read_csv(os.path.join(DATA_DIR, "Calendrier/Calendrier.csv"), dayfirst = True , sep = ';' , parse_dates = ['Date'])
 
     histoMod = database[(database['Date']>=dateDebMod) & (database['Date']<=dateFinMod)]
     
