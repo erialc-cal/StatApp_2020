@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sun Mar  7 11:49:55 2021
+Implémentation avec décomposition en ondelettes
 
-@author: Claire
 """
 
 import os
-import sys
 
 # En supposant qu'on parte du dossier où se trouve le fichier Modele_NP.py
 
@@ -24,13 +22,13 @@ from datetime import timedelta
 import pandas as pd
 import numpy as np
 
+#%% 
 
 database = pd.read_csv(os.path.join(DATA_DIR, "database_sieges.csv"),low_memory=False,decimal=',')
 database = database.astype({'Date': 'datetime64[ns]'})
 
-Calendrier = pd.read_csv(os.path.join(DATA_DIR,'Calendrier/Calendrier.csv'), dayfirst = True , sep
-= ';' , parse_dates = ['Date'])
-
+Calendrier = pd.read_csv(os.path.join(DATA_DIR,'Calendrier/Calendrier.csv'), dayfirst = True , sep= ';' , parse_dates = ['Date'])
+# Il manque les corrections calendaires 
 
 tailleBlocs = 365
 dateDebMod = pd.to_datetime("2007-01-01")
@@ -43,102 +41,107 @@ histoMod = histoMod[(histoMod['Date']>=dateDebMod) & (histoMod['Date']<=dateFinM
 
 histoMod = histoMod.groupby(['ArrDep','Faisceau','Date']).agg({'PAX':'sum'}).reset_index()
 
-
-# Sélection colonnes intérêt Calendrier + dans les colonnes Pont_LunF, .., Pont_VenF, on remplace par 0 si c'est les vacances en même temps
-colonnesCalendrier = ["Date" , "Mois" , "JourSem" , "Semaine" , "Semaine_Perso" , "Pont_LunF" , "Pont_MarF" , 
-                      "Pont_Mer1F" , "Pont_Mer2F" , "Pont_JeuF" , "Pont_VenF" ,"Pont_SamF" , "Pont_DimF" , "Vac_Toussaint" , "Vac_Noel" ,
-                      "Vac_Hiver_A" , "Vac_Hiver_B" , "Vac_Hiver_C" ,"Vac_Printemps_A" , "Vac_Printemps_B" , "Vac_Printemps_C" ,"Vac_Ete"]
-Calendrier = np.array(Calendrier[colonnesCalendrier])
-vacances = Calendrier[:,13:].sum(axis=1) > 0
-for i in range(5,11) :
-    Calendrier[:,i] *= vacances
-Calendrier = pd.DataFrame(Calendrier, columns=colonnesCalendrier)
-
-# On ne passe pas par la transformation en ondelettes ni la méthode à noyau sur la DWT
-
-# Augmentation de l'historique avec le calendrier : 
-histoMod = pd.merge(histoMod, Calendrier, left_on = ['Date'], right_on = ['Date'], how = 'left')
-histoMod = histoMod.sort_values(by='Date')
+#%%%
 
 
-# Choix de la largeur de la fenêtre :
-h = 20  #Faire une fonction annexe à appeler ici, qui choisit le meilleur h 
-
-
-# Création des blocs, de leurs stat et de blocs centrés réduits :
-as_strided = np.lib.stride_tricks.as_strided
-
-Blocs = pd.DataFrame(as_strided(histoMod["PAX"], (len(histoMod["PAX"])-(tailleBlocs-1) , tailleBlocs) , (histoMod["PAX"].values.strides * 2)))   
-print(Blocs)
-
-#%% 
-
-## Première étape 
-
-import pywt 
-(cA, cD) = pywt.dwt(Blocs, 'haar') #coeff d'approx, coeff détail (voir équation 0)
-print((cA, cD))
-
-def coeff_dissymetrie(i, j):
-    return 1/(2**len(cD[i])) * ((cD[i]-cD[j])**2).sum()
-
-#erreur 365 ? due au as_strided ?
-
-# Matrice de dissymétrie
-
-dissym = np.array([[coeff_dissymetrie(i,j) for i in range(len(Blocs))] for j in range(len(Blocs))])
-
-## Deuxième étape
-
-# on passe dans un noyau gaussien les coefficients récupérés dans cA
-# afin d'obtenir les poids
-
-dissym_rev=pd.DataFrame(np.array(dissym)[-1].reshape(1,-1))
-
-  #  LastBloc_CR = pd.DataFrame(np.array(Blocs_CR)[-1].reshape(1,-1))
-distances = np.sum((np.array(dissym_rev)-np.array(dissym[:-1]))**2,axis=1)
-weights =  (1/math.sqrt(2*math.pi)**len(dissym)) * np.exp(- distances / (2*h))
+def previsions_NP_KWT (histoMod, dateFinMod , hPrev) :
+    """
+    Fonction qui réalise les prédictions selon le modèle non-paramétrique avec ajout de la décomposition en ondelettes
     
+    Parameters
+    ----------
+    histoMod, dateFinMod, hPrev :
 
+    Returns
+    -------
+    PrevisionsNP : DataFrame
+        Prévisions journalières du modèle (contient 'PAX_NP', 'Date', 'Faisceau', 'ArrDep')  avec ondelettes 
+    """
 
-#%%
+    histoMod = histoMod.sort_values(by='Date')
+    
+    
+    # Choix de la largeur de la fenêtre :
+    h = 20  
+    
+    # taille des blocs :
+    tailleBlocs = 365
+    
+    # Création des blocs, de leurs stat et de blocs centrés réduits :
+    as_strided = np.lib.stride_tricks.as_strided
+    
+    Blocs = pd.DataFrame(as_strided(histoMod["PAX"], (len(histoMod["PAX"])-(tailleBlocs-1) , tailleBlocs) , (histoMod["PAX"].values.strides * 2)))   
+    print(Blocs)
+    
+    
+    
+    ### Décomposition en ondelettes
+    
+    ## Première étape 
+    
+    import pywt 
+    
+    # Préparation des données
+    
+    Stats = pd.DataFrame()
+    Stats['Mean'] = Blocs.mean(axis=1)
+    Stats['Stds'] = Blocs.std(axis=1) #on centre tout et on réduit
+    
+    Blocs_CR = (Blocs - np.array(Stats['Mean']).reshape(-1,1)) / np.array(Stats['Stds']).reshape(-1,1)
+                #décomposition en ondelette 1D alternative
+                #data_pad = np.lib.pad(np.ravel(Blocs), (0, 366), 'constant', constant_values=0)
+                #(c_1, c_2) = pywt.swt(data_pad, 'db1', level=1)[0]
+                #print((c_1, c_2))
+    
+    (cA, cD) = pywt.dwt(Blocs_CR, 'db1') #coeff d'approx, coeff détail (voir équation 0)
+    print(len(cA), len(cD))
+    
+    
+    # Matrice de dissymétrie
+    Last_cD = pd.DataFrame(np.array(cD)[-1].reshape(1,-1))
+    
+    D = np.sum((np.array(Last_cD)-np.array(cD[:-1]))**2,axis=1)
+    
+    
+    ## Deuxième étape
+    
+    # on passe dans un noyau gaussien les coefficients récupérés dans cD afin d'obtenir les poids
+    weights =  pd.DataFrame((1/math.sqrt(2*math.pi)**tailleBlocs)* np.exp(- D/ (2*h)))
+    
+    
+    
+    ### Implémentation des prévisions 
+    
+    # Le prédicteur est le barycentre des futurs des segments du passé (équation 5)
+    PrevisionsNP = pd.DataFrame()
+    datePrev = dateFinMod
+    
+    for horizonPrev in range(1,hPrev+1) :         
+        datePrev += timedelta(days=1)
+        weightsPrev = np.array(weights)[:1+len(weights)-hPrev]
+               
+        #weightsPrev = np.nan_to_num(weightsPrev) #permet de remplacer les éventuels Nan par 0 (nécéssaire pour l'échantillonnage)
+        #weightsPrev = pd.DataFrame(weightsPrev)
+        #print(weightsPrev.shape, weights.shape)
+        
+        
+        histoMod_CR = (np.array(histoMod['PAX'][tailleBlocs-1+horizonPrev:]).reshape(-1,1) - np.array(Stats['Mean'][ : - horizonPrev]).reshape(-1,1)) / np.array(Stats['Stds'][ : - horizonPrev]).reshape(-1,1)
+        histoMod_RS = histoMod_CR * np.array(Stats['Stds'])[-1].reshape(-1,1) + np.array(Stats['Mean'])[-1].reshape(-1,1)
+        
+        UnePrev =  (histoMod_RS * np.array(weights)).sum().sum()
+            
+            
+    # Ajout de la prévision à la table finale :
+        UnePrev = pd.DataFrame(data=[UnePrev],columns = ["PAX_NP"])
+        PrevisionsNP = pd.concat([PrevisionsNP, pd.concat([UnePrev , pd.DataFrame([datePrev]) , pd.DataFrame(histoMod[["ArrDep" , "Faisceau"]]).head(1).reset_index().drop(columns = ['index'])] , axis = 1)])
+    
+    
+    return PrevisionsNP.rename(columns = {0 : "Date"})
 
+#%%         
+previsions_NP_KWT(histoMod, dateFinMod, hPrev)
+# Tous les poids sont nuls ?
 
-
-
-Stats = pd.DataFrame()
-Stats['Mean'] = Blocs.mean(axis=1)
-Stats['Stds'] = Blocs.std(axis=1)
-
-Blocs_CR = (Blocs - np.array(Stats['Mean']).reshape(-1,1)) / np.array(Stats['Stds']).reshape(-1,1)
-LastBloc_CR = pd.DataFrame(np.array(Blocs_CR)[-1].reshape(1,-1))
-
-
-# Calcul des poids en comparant la similarité des motifs des blocs :    
-distances = np.sum((np.array(LastBloc_CR)-np.array(Blocs_CR[:-1]))**2,axis=1)
-weights = pd.DataFrame( (1/math.sqrt(2*math.pi)**tailleBlocs) * np.exp(- distances / (2*h)))
-
-  
-  # Calcul des prévisions une par une : 
-PrevisionsNP = pd.DataFrame()
-datePrev = dateFinMod
-
-for horizonPrev in range(1,hPrev+1) :         
-    datePrev += timedelta(days=1)
-
-# Correction des poids en utilisant le calendrier :    
-CalPrev = np.array(Calendrier[Calendrier['Date']==datePrev])
-histoPrev = histoMod[tailleBlocs - 1 + horizonPrev : ]
-
-indJourPrev = np.array(histoPrev["JourSem"]) == CalPrev[:,2]
-colHistoPrev = ["Pont_LunF","Pont_MarF","Pont_Mer1F","Pont_Mer2F","Pont_JeuF","Pont_VenF","Vac_Toussaint","Vac_Noel","Vac_Hiver_A","Vac_Hiver_B","Vac_Hiver_C","Vac_Printemps_A","Vac_Printemps_B","Vac_Printemps_C","Vac_Ete"]
-indCalPrev = [5,6,7,8,9,10,13,14,15,16,17,18,19,20,21]
-for k in range(len(indCalPrev)) :
-    indJourPrev = indJourPrev & (np.array(histoPrev[colHistoPrev[k]]) == CalPrev[:,indCalPrev[k]])
-print(indJourPrev.sum())
-
-# weightsPrev = indJourPrev * np.array(weights)[:-horizonPrev]
-
-# # Normalisation des poids :
-# s = np.sum(weightsPrev , axis = 0)
-# Sim = weightsPrev / s
+    
+    
+   
