@@ -15,6 +15,10 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.arima_model import ARIMA
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
+from pmdarima import auto_arima
+# Ignore harmless warnings
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def test_statio(serie, variable):
@@ -88,4 +92,25 @@ def simulation_ARIMA(variable,type_mouvement,faisceau,p,d,q):
     return(predictions_ARIMA)
     #La fonction retourne un dataframe avec les données prédites par ARIMA
     
-#Exemple d'exécution : simulation_ARIMA('PAX',2,1,2)
+#Exemple d'exécution : simulation_ARIMA('PAX','Arrivée','International',5,1,1)
+    
+#Pour obtenir les ordres p,d et q : 
+def ordre_ARIMA(variable,type_mouvement,faisceau):
+    
+    df = pd.read_csv("/Users/victorhuynh/Downloads/database_sieges.csv", parse_dates = ['Date'], index_col = ['Date'])
+    df[~(df.isin([pd.to_datetime('2010-04-18'),pd.to_datetime('2010-04-19')]))] 
+    #Retrait de ces deux dates où les données sont nulles (car incident volcanique)
+    df = df[df['Faisceau'] == faisceau]
+    df = df[df['ArrDep'] == type_mouvement]
+    
+    df1 = df[[variable]]
+    df1 = df.groupby('Date').agg({variable:'mean'})
+    #On retire ces deux dates où le trafic est nul
+        
+    df_log = np.log(df1)
+    
+    stepwise_fit = auto_arima(df_log[variable], suppress_warnings=True)           
+
+    print(stepwise_fit.summary())
+    
+#Exemple d'exécution : ordre_ARIMA('PAX','Départ','International')
