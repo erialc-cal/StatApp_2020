@@ -153,7 +153,7 @@ def previsions_NP_KWT (histoMod, dateFinMod , hPrev) :
             
             
     # Ajout de la prévision à la table finale :
-        UnePrev = pd.DataFrame(data=[UnePrev],columns = ["PAX_NP"])
+        UnePrev = pd.DataFrame(data=[UnePrev],columns = ["PAX_KWT"])
         PrevisionsNP = pd.concat([PrevisionsNP, pd.concat([UnePrev , pd.DataFrame([datePrev]) , pd.DataFrame(histoMod[["ArrDep" , "Faisceau"]]).head(1).reset_index().drop(columns = ['index'])] , axis = 1)])
 
 
