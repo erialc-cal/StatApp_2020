@@ -54,8 +54,8 @@ model_fit = model.fit(disp = False)
 K = len(test)
 prediction = model_fit.forecast(K) #On va prédire K valeurs
 prediction = np.exp(prediction) #Exponentialisation pour remettre à l'échelle convenable nos données
-index_dates=pd.date_range(start='2014-04-22',end='2016-12-31')
-prediction.index=index_dates
+index_dates = pd.date_range(start='2014-04-22', end='2016-12-31')
+prediction.index = index_dates
 
 #Comparaisons réel/prédiction sur nos données de test
 plt.figure(figsize = (10, 5))
