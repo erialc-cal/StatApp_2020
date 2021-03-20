@@ -48,7 +48,7 @@ def simulation_ARIMA(variable,type_mouvement,faisceau,p,d,q):
 #Il faut saisir la variable qu'on souhaite prédire, le faisceau concerné, le type de mouvement (A/D) et les paramètres ARIMA
 
     df = pd.read_csv("/Users/victorhuynh/Downloads/database_sieges.csv", parse_dates = ['Date'], index_col = ['Date'])
-    df[~(df.isin([pd.to_datetime('2010-04-18'),pd.to_datetime('2010-04-19')]))] 
+    df = df[~(df.isin([pd.to_datetime('2010-04-18'),pd.to_datetime('2010-04-19')]))] 
     #Retrait de ces deux dates où les données sont nulles (car incident volcanique)
     df = df[df['Faisceau'] == faisceau]
     df = df[df['ArrDep'] == type_mouvement]
