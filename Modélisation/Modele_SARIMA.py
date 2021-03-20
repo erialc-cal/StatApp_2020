@@ -9,6 +9,8 @@ Created on Sat Mar 20 21:33:58 2021
 import numpy as np
 import pandas as pd
 from statsmodels.tsa.stattools import acf, pacf
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from matplotlib import pyplot as plt
 
 df = pd.read_csv("/Users/victorhuynh/Downloads/database_sieges.csv", parse_dates = ['Date'], index_col = ['Date'])
 df1 = df[['PAX']] #On ne garde que la variable PAX
@@ -45,6 +47,9 @@ plt.axhline(y = -1.96/np.sqrt(len(train)), linestyle = '--', color = 'gray')
 plt.axhline(y = 1.96/np.sqrt(len(train)), linestyle = '--', color = 'gray')
 plt.xlabel('Décalage')
 plt.ylabel('Auto-corrélation partielle')
+
+model = SARIMAX(train, order = (4,1,4), seasonal_order = (1,0,0,7)) #Bien choisir les ordres SARIMA
+model_fit = model.fit(disp = False)
 
 K = len(test)
 prediction = model_fit.forecast(K) #On va prédire K valeurs
