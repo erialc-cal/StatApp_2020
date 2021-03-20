@@ -106,19 +106,20 @@ def previsions_NP_h_fixe (histoMod, Calendrier, dateFinMod, infosBlocs , hPrev, 
         CalPrev = np.array(Calendrier[Calendrier['Date']==datePrev])
         histoPrev = histoMod[tailleBlocs - 1 + horizonPrev : ]
         
-        indJourPrev = np.array(histoPrev["JourSem"]) == CalPrev[:,2]
-        colHistoPrev = ["Pont_LunF","Pont_MarF","Pont_Mer1F","Pont_Mer2F","Pont_JeuF","Pont_VenF","Vac_Toussaint","Vac_Noel","Vac_Hiver_A","Vac_Hiver_B","Vac_Hiver_C","Vac_Printemps_A","Vac_Printemps_B","Vac_Printemps_C","Vac_Ete"]
-        indCalPrev = [5,6,7,8,9,10,13,14,15,16,17,18,19,20,21]
+        indJourPrev = np.array(histoPrev["Pont_LunF"]) == CalPrev[:,5]
+        colHistoPrev = ["Pont_MarF","Pont_Mer1F","Pont_Mer2F","Pont_JeuF","Pont_VenF","Vac_Toussaint","Vac_Noel","Vac_Hiver_A","Vac_Hiver_B","Vac_Hiver_C","Vac_Printemps_A","Vac_Printemps_B","Vac_Printemps_C","Vac_Ete"]
+        indCalPrev = [6,7,8,9,10,13,14,15,16,17,18,19,20,21]
         for k in range(len(indCalPrev)) :
             indJourPrev = indJourPrev & (np.array(histoPrev[colHistoPrev[k]]) == CalPrev[:,indCalPrev[k]])
-        indJourPrev = indJourPrev.reshape(-1,1)
         
+        # On ajoute une correction avec le jour de la semaine uniquement si cela n'annule pas tous les poids :
+        indJourPrev2 = indJourPrev & (np.array(histoPrev["JourSem"]) == CalPrev[:,2])
+        if sum(indJourPrev2) != 0 :
+            indJourPrev = indJourPrev2
+            
+        indJourPrev = indJourPrev.reshape(-1,1)
+
         weightsPrev = indJourPrev * np.array(weights)[:1+len(weights)-horizonPrev]
-           
-        # Sans correction si on obtient des poids nuls :
-        if sum(weightsPrev) == 0 :
-            weightsPrev = np.array(weights)[:1+len(weights)-horizonPrev]
-            # print(datePrev)
         
         weightsPrev = np.nan_to_num(weightsPrev) #permet de remplacer les éventuels Nan par 0 (nécéssaire pour l'échantillonnage)
         weightsPrev = pd.DataFrame(weightsPrev)
@@ -195,14 +196,18 @@ def rmse (serie1 , serie2) :
  
     
     
-def meilleur_h (histoMod, Calendrier, dateFinMod, infosBlocs , hPrev, tailleBlocs) :
+def meilleur_h (histoMod, Calendrier, dateFinMod, hPrev, tailleBlocs) :
     """
-    Fonction qui recherche le meilleur h parmi différents candidats choisis arbitrairement, 
-    à savoir : [20,30,40,50,60,70]
+    Fonction qui recherche le meilleur h : 
+        - sélectionne des périodes de test : périodes présentes dans l'histo, commençant aux mêmes dates 
+            que la période à prédire, mais pour des années antérieures (de sorte qu'il y ait toujours au moins un an de dispo dans l'histo)
+        - pour chaque période de test, cherche le meilleur h parmi les différents candidats choisis arbitrairement : 
+            [5,10,15,20,25,30,35,40,45,50]
+        - prend la moyenne des meilleurs h sélectionnés à l'étape précédente 
 
     Parameters
     ----------
-    histoMod, Calendrier, dateFinMod, hPrev, tailleBlocs, infosBlocs : 
+    histoMod, Calendrier, dateFinMod, hPrev, tailleBlocs : 
         idem que dans la fonction previsions_NP et previsions_NP_h_fixe
 
     Returns
@@ -211,35 +216,41 @@ def meilleur_h (histoMod, Calendrier, dateFinMod, infosBlocs , hPrev, tailleBloc
         Meilleur h qui permet de faire les meilleurs prédictions
 
     """
-    candidats_h = [i for i in range(20,80,10)]
+    candidats_h = [i for i in range(5,55,5)]
     
-    # On doit diviser notre historique, pour garder un échantillon d'entrainement, et un échantillon de test :
-    # On choisit par exemple d'essayer de prédire la dernière année de l'historique avec le reste :
-    dateFinMod2 = dateFinMod - timedelta(days=hPrev)
+    meilleurs_h = [] # Liste qui contiendra les meilleurs h retenus pour chaque période testée
     
-    histoMod2 = histoMod[histoMod['Date']<=dateFinMod2]
-    infosBlocs2 = infos_blocs (histoMod2,tailleBlocs)
+    nb = len(histoMod)//365 - 1  # Nombre de périodes testées
     
-    realise = histoMod[histoMod['Date']>dateFinMod2]
-    realise = list(realise['PAX'])
-    
-    # Test de chacun des candidats h, et choix de celui avec la plus petite erreur RMSE :
-    
-    meilleur_h = candidats_h[0]
-    previsions = previsions_NP_h_fixe (histoMod2, Calendrier, dateFinMod2, infosBlocs2 , hPrev, meilleur_h) 
-    meilleure_erreur = rmse(realise, list(previsions['PAX_NP']))
-    
-    for k in range(1,len(candidats_h)) :
-        h = candidats_h[k]
-        previsions = previsions_NP_h_fixe (histoMod2, Calendrier, dateFinMod2, infosBlocs2 , 365, h)
-        erreur = rmse(realise, list(previsions['PAX_NP']))
+    for i in range(1,nb) : 
         
-        if erreur < meilleure_erreur :
-            meilleur_h = h
-            meilleure_erreur = erreur
+        # On choisit d'essayer de prédire la même période k années avant :
+        dateFinMod2 = dateFinMod - timedelta(days=i*365) 
         
-    # print(histoMod2['Faisceau'][0],histoMod2['ArrDep'][0],hPrev, meilleur_h)
-    return meilleur_h
+        histoMod2 = histoMod[histoMod['Date']<=dateFinMod2]
+        infosBlocs2 = infos_blocs (histoMod2,tailleBlocs)
+        
+        realise =  histoMod[(histoMod['Date']>dateFinMod2)&(histoMod['Date']<=dateFinMod2+timedelta(days=hPrev))]
+        realise = list(realise['PAX'])
+    
+        # Test de chacun des candidats h, et choix de celui avec la plus petite erreur RMSE :
+    
+        meilleur_h = candidats_h[0]
+        previsions = previsions_NP_h_fixe (histoMod2, Calendrier, dateFinMod2, infosBlocs2 , hPrev, meilleur_h) 
+        meilleure_erreur = rmse(realise, list(previsions['PAX_NP']))
+    
+        for k in range(1,len(candidats_h)) :
+            h = candidats_h[k]
+            previsions = previsions_NP_h_fixe (histoMod2, Calendrier, dateFinMod2, infosBlocs2 , 365, h)
+            erreur = rmse(realise, list(previsions['PAX_NP']))
+        
+            if erreur < meilleure_erreur :
+                meilleur_h = h
+                meilleure_erreur = erreur
+        meilleurs_h.append(meilleur_h)
+        
+    # print(histoMod2['Faisceau'][0],histoMod2['ArrDep'][0],hPrev,sum(meilleurs_h)/len(meilleurs_h))
+    return sum(meilleurs_h)/len(meilleurs_h)
     
 
     
@@ -296,7 +307,7 @@ def previsions_NP (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic = 0.9
     
     
     # Choix de la meilleure largeur de la fenêtre : on fait appel à une recherche de type cross validation
-    h = meilleur_h (histoMod, Calendrier, dateFinMod, infosBlocs , hPrev, tailleBlocs) 
+    h = meilleur_h (histoMod, Calendrier, dateFinMod, hPrev, tailleBlocs) 
     
     
     # Réalisation des prévisions avec le h sélectionné précédemment :
@@ -327,7 +338,7 @@ def previsions_NP (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic = 0.9
 # histoPrev = database[(database['Date']>dateFinMod) & (database['Date']<=dateFinMod+timedelta(days = hPrev))]
     
             
-# histoMod_2 = histoMod[(histoMod['Faisceau']=='National') & (histoMod['ArrDep']=='Arrivée')]
+# histoMod_2 = histoMod[(histoMod['Faisceau']=='Schengen') & (histoMod['ArrDep']=='Arrivée')]
            
 
 # test = previsions_NP(histoMod_2, Calendrier, dateDebMod, dateFinMod, hPrev)
