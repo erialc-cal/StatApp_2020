@@ -11,6 +11,8 @@ import pandas as pd
 from statsmodels.tsa.stattools import acf, pacf
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from matplotlib import pyplot as plt
+!pip install pmdarima 
+from pmdarima import auto_arima
 
 df = pd.read_csv("/Users/victorhuynh/Downloads/database_sieges.csv", parse_dates = ['Date'], index_col = ['Date'])
 df1 = df[['PAX']] #On ne garde que la variable PAX
@@ -48,7 +50,7 @@ plt.axhline(y = 1.96/np.sqrt(len(train)), linestyle = '--', color = 'gray')
 plt.xlabel('Décalage')
 plt.ylabel('Auto-corrélation partielle')
 
-model = SARIMAX(train, order = (4,1,4), seasonal_order = (1,0,0,7)) #Bien choisir les ordres SARIMA
+model = SARIMAX(train, order = (2,0,3), seasonal_order = (2,1,1,12)) #Bien choisir les ordres SARIMA
 model_fit = model.fit(disp = False)
 
 K = len(test)
@@ -65,3 +67,40 @@ plt.plot(df1,'b')
 plt.xlabel('Date')
 plt.ylabel('PAX')
 plt.autoscale(enable = True, axis = 'x', tight = True)
+
+
+# Pour trouver les meilleurs ordres SARIMA :
+
+meilleur_modele = auto_arima(train['PAX'], start_p=1, start_q=1,
+                         test='adf',
+                         max_p=3, max_q=3, m=12,
+                         start_P=0, seasonal=True,
+                         d=None, D=1, trace=True,
+                         error_action='ignore',  
+                         suppress_warnings=True, 
+                         stepwise=True)
+
+meilleur_modele.summary()
+
+
+
+# Ce code m'a l'air de donner des meilleures prédictions et un bel intervalle de confiance :
+
+model = SARIMAX(df1, order = (2,0,3), seasonal_order = (2,1,1,12))
+model_fit = model.fit(disp =-1)
+
+prediction = model_fit.get_prediction(start=pd.to_datetime('2014-04-22'), dynamic=False)
+inter_conf = prediction.conf_int()
+sup_conf = pd.Series(inter_conf['upper PAX'])
+inf_conf = pd.Series(inter_conf['lower PAX'])
+
+ax = df1['PAX'].plot(label='Réalisé')
+prediction.predicted_mean.plot(ax=ax, label='Prédiction', alpha=.7, figsize=(14, 4))
+ax.fill_between(inter_conf.index,
+                sup_conf,
+                inf_conf, color='k', alpha=.2, label = 'Intervalle de confiance')
+ax.set_xlabel('Date')
+ax.set_ylabel('PAX')
+plt.legend()
+plt.show()
+
