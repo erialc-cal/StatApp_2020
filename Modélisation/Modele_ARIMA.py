@@ -44,17 +44,15 @@ def test_statio(serie, variable):
         print('\t{}: {}'.format(key, value))
         
 
-def simulation_ARIMA(variable,type_mouvement,faisceau,p,d,q): 
+def simulation_ARIMA(variable,p,d,q): 
 #Il faut saisir la variable qu'on souhaite prédire, le faisceau concerné, le type de mouvement (A/D) et les paramètres ARIMA
 
     df = pd.read_csv("/Users/victorhuynh/Downloads/database_sieges.csv", parse_dates = ['Date'], index_col = ['Date'])
-    df = df[~(df.isin([pd.to_datetime('2010-04-18'),pd.to_datetime('2010-04-19')]))] 
+    df = df[~(df.index.isin([pd.to_datetime('2010-04-18'),pd.to_datetime('2010-04-19')]))] 
     #Retrait de ces deux dates où les données sont nulles (car incident volcanique)
-    df = df[df['Faisceau'] == faisceau]
-    df = df[df['ArrDep'] == type_mouvement]
     
     df1 = df[[variable]]
-    df1 = df.groupby('Date').agg({variable:'mean'})
+    df1 = df1.groupby('Date').agg({variable:'mean'})
     #On retire ces deux dates où le trafic est nul
         
     df_log = np.log(df1)
@@ -92,19 +90,17 @@ def simulation_ARIMA(variable,type_mouvement,faisceau,p,d,q):
     return(predictions_ARIMA)
     #La fonction retourne un dataframe avec les données prédites par ARIMA
     
-#Exemple d'exécution : simulation_ARIMA('PAX','Arrivée','International',5,1,1)
+#Exemple d'exécution : simulation_ARIMA('PAX',5,1,1)
     
 #Pour obtenir les ordres p,d et q : 
-def ordre_ARIMA(variable,type_mouvement,faisceau):
+def ordre_ARIMA(variable):
     
     df = pd.read_csv("/Users/victorhuynh/Downloads/database_sieges.csv", parse_dates = ['Date'], index_col = ['Date'])
-    df[~(df.isin([pd.to_datetime('2010-04-18'),pd.to_datetime('2010-04-19')]))] 
+    df = df[~(df.index.isin([pd.to_datetime('2010-04-18'),pd.to_datetime('2010-04-19')]))] 
     #Retrait de ces deux dates où les données sont nulles (car incident volcanique)
-    df = df[df['Faisceau'] == faisceau]
-    df = df[df['ArrDep'] == type_mouvement]
     
     df1 = df[[variable]]
-    df1 = df.groupby('Date').agg({variable:'mean'})
+    df1 = df1.groupby('Date').agg({variable:'mean'})
     #On retire ces deux dates où le trafic est nul
         
     df_log = np.log(df1)
@@ -113,4 +109,85 @@ def ordre_ARIMA(variable,type_mouvement,faisceau):
 
     print(stepwise_fit.summary())
     
-#Exemple d'exécution : ordre_ARIMA('PAX','Départ','International')
+#Exemple d'exécution : ordre_ARIMA('PAX')
+    
+    
+    
+    
+    
+    
+#Version sans passage au log et différenciation uniquement (pour stationnariser)
+    
+def simulation_ARIMA(variable,p,d,q): 
+#Il faut saisir la variable qu'on souhaite prédire, le faisceau concerné, le type de mouvement (A/D) et les paramètres ARIMA
+
+    df = pd.read_csv("/Users/victorhuynh/Downloads/database_sieges.csv", parse_dates = ['Date'], index_col = ['Date'])
+    df = df[~(df.index.isin([pd.to_datetime('2010-04-18'),pd.to_datetime('2010-04-19')]))] 
+    #Retrait de ces deux dates où les données sont nulles (car incident volcanique)
+    
+    df1 = df[[variable]]
+    df1 = df1.groupby('Date').agg({variable:'mean'})
+    #On retire ces deux dates où le trafic est nul
+
+    df1_shift = df1 - df1.shift()
+    df1_shift.dropna(inplace=True)
+    test_statio(df1_shift, variable)
+
+    #ARIMA en action
+    model = ARIMA(df1, order=(p,d,q))
+    results = model.fit(disp=-1)
+    plot1 = plt.figure(1)
+    plt.plot(df1_shift)
+    plt.plot(results.fittedvalues, color='red')
+    #On compare prédiction et réalité
+
+    #Pour comparer à la série de base : il faut effectuer diverses opérations, dont le renversement de la différentiation et le passage à exp
+    predictions_ARIMA_diff = pd.Series(results.fittedvalues, copy=True)
+    predictions_ARIMA_diff_cumsum = predictions_ARIMA_diff.cumsum()
+    predictions_ARIMA = pd.Series(df1['PAX'].iloc[0], index=df1.index)
+    predictions_ARIMA = predictions_ARIMA.add(predictions_ARIMA_diff_cumsum, fill_value=0)
+    plot2 = plt.figure(2)
+    plt.plot(df1)
+    plt.plot(predictions_ARIMA)
+    #On compare prédiction et réalité, mais cette fois avec les valeurs de base
+    
+    return(predictions_ARIMA)
+    #La fonction retourne un dataframe avec les données prédites par ARIMA
+    
+#Exemple d'exécution : simulation_ARIMA('PAX',5,1,1)
+    
+    
+    
+    
+
+# Version avec cross-validation et intervalle de confiance :
+    
+    
+df = pd.read_csv("/Users/victorhuynh/Downloads/database_sieges.csv", parse_dates = ['Date'], index_col = ['Date'])
+df1 = df[['PAX']] #On ne garde que la variable PAX
+df1 = df1.groupby('Date').agg({'PAX':'mean'})
+df1 = df1.drop([pd.to_datetime('2010-04-18'),pd.to_datetime('2010-04-19')])
+
+pourcent_train = 0.70
+point_sep = round(len(df1) * pourcent_train)
+train, test = df1.iloc[:point_sep], df1.iloc[point_sep:]
+train_diff = train.diff(periods = 1).dropna()
+
+model = ARIMA(train, order=(5,1,4)) #Paramètres choisis en utilisant la fonction précédente
+model_fit = model.fit(disp= -1)
+
+prediction, se, conf = model_fit.forecast(len(test), alpha=0.05)
+# On construit un intervalle de confiance à 95%
+prediction_serie = pd.Series(prediction, index=test.index)
+sup_conf = pd.Series(conf[:, 0], index=test.index)
+inf_conf = pd.Series(conf[:, 1], index=test.index)
+
+plt.figure(figsize=(12,5), dpi=100)
+plt.plot(train, label='Entraînement')
+plt.plot(test, label='Test')
+plt.plot(prediction_serie, label='Prédiction')
+plt.fill_between(inf_conf.index, inf_conf, sup_conf, 
+                 color='k', alpha=.15)
+plt.title('Prédiction vs Test')
+plt.legend(loc='upper left', fontsize=8)
+plt.show()
