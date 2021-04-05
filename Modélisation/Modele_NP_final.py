@@ -153,7 +153,7 @@ def previsions_NP_h_fixe (histoMod, Calendrier, dateFinMod, infosBlocs , hPrev, 
             upper = np.percentile(residus, p_u)
             
             # Ajout de la prévision et de son intervalle de confiance à la table finale :
-            UnePrev = pd.DataFrame(data={"PAX_NP" : [UnePrev], 'IC'+str(ic*100)+'_low_NP' : [UnePrev+lower] ,'IC'+str(ic*100)+'_up_NP' : [UnePrev+upper]})
+            UnePrev = pd.DataFrame(data={"PAX_NP" : [UnePrev], 'IC'+str(int(ic*100))+'_low_NP' : [UnePrev+lower] ,'IC'+str(int(ic*100))+'_up_NP' : [UnePrev+upper]})
             PrevisionsNP = pd.concat([PrevisionsNP , pd.concat([UnePrev , pd.DataFrame([datePrev]) , pd.DataFrame(histoMod[["ArrDep" , "Faisceau"]]).head(1).reset_index().drop(columns = ['index'])] , axis = 1)])
         
         
@@ -322,7 +322,7 @@ def previsions_NP (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic = 0.9
 
 #### TEST ####
 
-# dateDebMod = pd.to_datetime("2007-01-01")
+# dateDebMod = pd.to_datetime("2008-01-01")
 # dateFinMod = pd.to_datetime("2016-01-15")
 
 # hPrev = 365
@@ -339,7 +339,11 @@ def previsions_NP (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic = 0.9
     
             
 # histoMod_2 = histoMod[(histoMod['Faisceau']=='Schengen') & (histoMod['ArrDep']=='Arrivée')]
-           
+
+# histoMod_2.to_csv('histoMod.csv')
+
+# histoPrev_2 = histoPrev[(histoPrev['Faisceau']=='Schengen')&(histoPrev['ArrDep']=='Arrivée')]
+# histoPrev_2.to_csv('histoPrev.csv')
 
 # test = previsions_NP(histoMod_2, Calendrier, dateDebMod, dateFinMod, hPrev)
 
