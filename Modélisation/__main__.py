@@ -28,7 +28,7 @@ dateDebMod = pd.to_datetime("2008-01-01")
 dateFinMod = pd.to_datetime("2015-12-31")
 
 
-horizonsPrev = [7] #, 31+29+31, 365]  # (en jours)
+horizonsPrev = [365] # 7, 31+29+31, 365]  # (en jours)
 ic = 0.95   # Seuil de l'intervalle de confiance souhaité
             
 
@@ -57,8 +57,8 @@ if __name__ == '__main__':
         Prev_Lasso = pd.DataFrame()
 
     
-        for faisceau in ['National'] :#, 'Schengen', 'Autre UE', 'International', 'Dom Tom'] :
-            for mvt in ['Arrivée'] :#, 'Départ'] :
+        for faisceau in ['National', 'Schengen', 'Autre UE', 'International', 'Dom Tom'] :
+            for mvt in ['Départ']: #, 'Arrivée']: 
             
                 histoMod_2 = histoMod[(histoMod['Faisceau']==faisceau) & (histoMod['ArrDep']==mvt)]
 
@@ -68,8 +68,9 @@ if __name__ == '__main__':
 
 
                 # Modèle Sarima :
-                prev_Sarima = previsions_SARIMA(histoMod_2, dateDebMod, dateFinMod, hPrev, ic)
-                Prev_Sarima = pd.concat([Prev_Sarima, prev_Sarima],ignore_index=True) 
+                if faisceau!='International' :
+                    prev_Sarima = previsions_SARIMA(histoMod_2, dateDebMod, dateFinMod, hPrev, ic)
+                    Prev_Sarima = pd.concat([Prev_Sarima, prev_Sarima],ignore_index=True) 
                 
                 
                 # Modèle Non-Paramétrique :
