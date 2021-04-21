@@ -108,7 +108,7 @@ def previsions_Lasso (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic=0.
     
     PrevisionsLasso = pd.DataFrame(data=PrevisionsLasso,columns = ["Date", "Faisceau", "ArrDep", "PAX_Lasso"])
     PrevisionsLasso["IC"+str(int(ic*100))+"_low_LASSO"] = min_pred
-    PrevisionsLasso["IC"+str(int(ic*100))+"_high_LASSO"] = max_pred
+    PrevisionsLasso["IC"+str(int(ic*100))+"_up_LASSO"] = max_pred
     
     # print((faisceau,mvt,modele.alpha_))
     # print("Score entrainement : "+str(modele.score(X_mod,y_mod)))
