@@ -14,9 +14,7 @@ import pandas as pd
 
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.linear_model import LassoCV
-#pour obtenir l'IC en bootstrap
-from mlinsights.mlmodel import IntervalRegressor
-from sklearn.ensemble import BaggingRegressor
+from tqdm import trange
 
 
 def previsions_Lasso (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic=0.95) :
@@ -79,24 +77,15 @@ def previsions_Lasso (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic=0.
             # la commande drop='first' permet d'enlever l'une des indicatrices à chaque fois (la première arbitrairement)
 
     
+       
     # On peut désormais entrainer la régression Lasso et calculer les prédictions : 
     modele = LassoCV(cv=5,eps=0.001, n_alphas=100, normalize=True)
             # L'argument normalize=True va normaliser toutes les colonnes de X
     modele.fit(X_mod,y_mod)
     
     predictions = modele.predict(X_pred)
-    
-    # Calcul des IC par bootstrap
-    
-    reg= BaggingRegressor(LassoCV(cv=5, random_state=0),bootstrap=True)
-    
-    ic_model = IntervalRegressor(alpha=1-ic, estimator=reg)
-    ic_model.fit(X_mod, y_mod)
-    
-    sorted_X = np.array(list(sorted(X_mod)))
-    bootstrapped_pred = ic_model.predict_sorted(sorted_X)
-    min_pred = bootstrapped_pred[:, 0]
-    max_pred = bootstrapped_pred[:, bootstrapped_pred.shape[1]-1]
+    intervals = prediction_interval(model, X_mod, y_mod, X_pred, 1-ic)
+
     
     # Mise en forme des prédictions :
     faisceau = histoMod['Faisceau'][0] 
@@ -107,8 +96,8 @@ def previsions_Lasso (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic=0.
         PrevisionsLasso.append([dateFinMod + timedelta(days=k+1) , faisceau, mvt, predictions[k]])
     
     PrevisionsLasso = pd.DataFrame(data=PrevisionsLasso,columns = ["Date", "Faisceau", "ArrDep", "PAX_Lasso"])
-    PrevisionsLasso["IC"+str(int(ic*100))+"_low_LASSO"] = min_pred
-    PrevisionsLasso["IC"+str(int(ic*100))+"_up_LASSO"] = max_pred
+    PrevisionsLasso["IC"+str(int(ic*100))+"_low_LASSO"] = PrevisionsLasso["PAX_Lasso"]+intervals[0]
+    PrevisionsLasso["IC"+str(int(ic*100))+"_up_LASSO"] = PrevisionsLasso["PAX_Lasso"]+ intervals[2]
     
     # print((faisceau,mvt,modele.alpha_))
     # print("Score entrainement : "+str(modele.score(X_mod,y_mod)))
@@ -116,7 +105,71 @@ def previsions_Lasso (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic=0.
     return PrevisionsLasso
 
     
+def prediction_interval(model, X_train, y_train, x0, alpha):
+  ''' Compute a prediction interval around the model's prediction of x0.
+
+  INPUT
+    model
+      A predictive model with `fit` and `predict` methods
+    X_train: numpy array of shape (n_samples, n_features)
+      A numpy array containing the training input data
+    y_train: numpy array of shape (n_samples,)
+      A numpy array containing the training target data
+    x0
+      A new data point, of shape (n_features,)
+    alpha: float = 0.05
+      The prediction uncertainty
+
+  OUTPUT
+    A triple (`lower`, `pred`, `upper`) with `pred` being the prediction
+    of the model and `lower` and `upper` constituting the lower- and upper
+    bounds for the prediction interval around `pred`, respectively. '''
+
+  # Number of training samples
+  n = X_train.shape[0]
+
+  # We choose to make 1000 bootstraps
+  nbootstraps=1000
+
+  # Compute the m_i's and the validation residuals
+  bootstrap_preds, val_residuals = pd.DataFrame(), []
+  for b in trange(nbootstraps):
+    train_idxs = np.random.choice(range(n), size = n, replace = True)
+    val_idxs = np.array([idx for idx in range(n) if idx not in train_idxs])
+    model.fit(X_train.iloc[train_idxs, :], y_train[train_idxs])
+    preds = model.predict(X_train.iloc[val_idxs])
+    val_residuals.append(y_train[val_idxs] - preds)
     
+
+    bootstrap_preds[b] = model.predict(x0)
+  bootstrap_preds -= np.mean(bootstrap_preds)
+  val_residuals = np.concatenate(val_residuals)
+
+  # Compute the prediction and the training residuals
+  model.fit(X_train, y_train)
+  preds = model.predict(X_train)
+  train_residuals = y_train - preds
+
+  # Take percentiles of the training- and validation residuals to enable
+  # comparisons between them
+  val_residuals = np.percentile(val_residuals, q = np.arange(100))
+  train_residuals = np.percentile(train_residuals, q = np.arange(100))
+
+  # Compute the .632+ bootstrap estimate for the sample noise and bias
+  no_information_error = np.mean(np.abs(np.random.permutation(y_train) - \
+    np.random.permutation(preds)))
+  generalisation = np.abs(val_residuals.mean() - train_residuals.mean())
+  no_information_val = np.abs(no_information_error - train_residuals)
+  relative_overfitting_rate = np.mean(generalisation / no_information_val)
+  weight = .632 / (1 - .368 * relative_overfitting_rate)
+  residuals = (1 - weight) * train_residuals + weight * val_residuals
+
+  # Construct the C set and get the percentiles
+  C = np.array([m + o for m in bootstrap_preds for o in residuals])
+  qs = [100 * alpha / 2, 100 * (1 - alpha / 2)]
+  percentiles = np.percentile(C, q = qs)
+
+  return percentiles[0], model.predict(x0), percentiles[1]
     
 
 
