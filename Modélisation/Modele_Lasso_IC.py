@@ -84,7 +84,7 @@ def previsions_Lasso (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic=0.
     modele.fit(X_mod,y_mod)
     
     predictions = modele.predict(X_pred)
-    intervals = prediction_interval(model, X_mod, y_mod, X_pred, 1-ic)
+    intervals = prediction_interval(modele, X_mod, y_mod, X_pred, 1-ic)
 
     
     # Mise en forme des prédictions :
@@ -115,9 +115,8 @@ def prediction_interval(model, X_train, y_train, x0, alpha):
       A numpy array containing the training input data
     y_train: numpy array of shape (n_samples,)
       A numpy array containing the training target data
-    x0
-      A new data point, of shape (n_features,)
-    alpha: float = 0.05
+    x0 : A new data point, of shape (n_features,)
+    alpha: 1-ic
       The prediction uncertainty
 
   OUTPUT
@@ -136,8 +135,8 @@ def prediction_interval(model, X_train, y_train, x0, alpha):
   for b in trange(nbootstraps):
     train_idxs = np.random.choice(range(n), size = n, replace = True)
     val_idxs = np.array([idx for idx in range(n) if idx not in train_idxs])
-    model.fit(X_train.iloc[train_idxs, :], y_train[train_idxs])
-    preds = model.predict(X_train.iloc[val_idxs])
+    model.fit(X_train[train_idxs, :], y_train[train_idxs])
+    preds = model.predict(X_train[val_idxs])
     val_residuals.append(y_train[val_idxs] - preds)
     
 
@@ -158,6 +157,7 @@ def prediction_interval(model, X_train, y_train, x0, alpha):
   # Compute the .632+ bootstrap estimate for the sample noise and bias
   no_information_error = np.mean(np.abs(np.random.permutation(y_train) - \
     np.random.permutation(preds)))
+      
   generalisation = np.abs(val_residuals.mean() - train_residuals.mean())
   no_information_val = np.abs(no_information_error - train_residuals)
   relative_overfitting_rate = np.mean(generalisation / no_information_val)
