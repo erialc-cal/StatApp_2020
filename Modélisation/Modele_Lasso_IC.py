@@ -10,7 +10,6 @@ from datetime import timedelta
 
 import numpy as np
 import pandas as pd
-#% pip install mlinsights
 
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.linear_model import LassoCV
@@ -149,7 +148,7 @@ def prediction_interval(model, X_train, y_train, x0, alpha):
   preds = model.predict(X_train)
   train_residuals = y_train - preds
 
-  # Take percentiles of the training- and validation residuals to enable
+  # Take percentiles of the training-and validation residuals to enable
   # comparisons between them
   val_residuals = np.percentile(val_residuals, q = np.arange(100))
   train_residuals = np.percentile(train_residuals, q = np.arange(100))

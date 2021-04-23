@@ -15,12 +15,15 @@ avec le réalisé et les prédictions des FQMs.
 
 import pandas as pd
 from datetime import timedelta
+
+
 from Modele_ARIMA_final import previsions_ARIMA
 from Modele_SARIMA_final import previsions_SARIMA
 from Modele_NP_final import previsions_NP
 from Modele_Lasso_IC import previsions_Lasso
 
-
+# chemin du dossier StatApp_2020
+path = ""
 
 dateDebMod = pd.to_datetime("2008-01-01")
 dateFinMod = pd.to_datetime("2015-12-31")
@@ -31,13 +34,14 @@ ic = 0.95   # Seuil de l'intervalle de confiance souhaité
             
 
 
+
 if __name__ == '__main__':
     
-    database = pd.read_csv("Downloads/database_sieges.csv",low_memory=False,decimal=',')
+    database = pd.read_csv(path+"/Modélisation/database_sieges.csv",low_memory=False,decimal=',')
     database = database.astype({'Date': 'datetime64[ns]','PAX_FQM':'float','Sièges Corrections_ICI':'float','Coeff_Rempl':'float','Coeff_Rempl_FQM':'float'})
     database = database.groupby(['Date','Faisceau','ArrDep']).agg({'PAX':'sum','PAX_FQM':'sum','Sièges Corrections_ICI':'sum','Coeff_Rempl':'mean','Coeff_Rempl_FQM':'mean'}).reset_index()
 
-    Calendrier = pd.read_csv("Documents/GitHub/StatApp_2020/Data/Calendrier/Calendrier.csv", dayfirst = True , sep = ';' , parse_dates = ['Date'])
+    Calendrier = pd.read_csv(path+"Data/Calendrier/Calendrier.csv", dayfirst = True , sep = ';' , parse_dates = ['Date'])
 
     histoMod = database[(database['Date']>=dateDebMod) & (database['Date']<=dateFinMod)]
     # histoMod.to_csv("HistoMod.csv")
