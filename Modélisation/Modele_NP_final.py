@@ -5,7 +5,7 @@ Plusieurs fonctions implémentées :
     - infos_blocs : crée les blocs à partir de l'historique, et calcule moyenne, ... (évite de refaire le calcul à chaque fois)
     - previsions_NP_h_fixe : réalise des prédictions pour un hyper paramètre h donné
     - rmse : calcule l'erreur rmse (utilisé pour le choix de l'hyper-paramètre h)
-    - meilleur_h : choisit le meilleur paramètre h, comme meilleur paramètre qui aurait permis de prédire la dernière année de l'historique (comparaison erreur rmse, pour différentes valeurs de h, entre prédictions et réalisé sur cette dernière année d'historique)
+    - meilleur_h : choisit le meilleur paramètre h, comme moyenne des meilleurs paramètres qui auraient permis de prédire chacune des périodes qui sont aux mêmes dates que celle que l'on souhaite prédire, mais pour des années antérieures
     - previsions_NP : fonction finale, qui réalise les prédictions souhaitées après avoir choisir le meilleur hyper paramètre h 
 """
 
@@ -158,8 +158,8 @@ def previsions_NP_h_fixe (histoMod, Calendrier, dateFinMod, infosBlocs , hPrev, 
         
         
         else : 
-            # Ajout de la prévision à la table finale :
-            UnePrev = pd.DataFrame(data=[UnePrev],columns = ["PAX_NP"])
+            # Ajout de la prévision à la table finale, valeur 0 dans les IC :
+            UnePrev = pd.DataFrame(data={"PAX_NP" : [UnePrev], 'IC'+str(int(ic*100))+'_low_NP' : [0] ,'IC'+str(int(ic*100))+'_up_NP' : [0]})
             PrevisionsNP = pd.concat([PrevisionsNP , pd.concat([UnePrev , pd.DataFrame([datePrev]) , pd.DataFrame(histoMod[["ArrDep" , "Faisceau"]]).head(1).reset_index().drop(columns = ['index'])] , axis = 1)])
 
 
@@ -223,7 +223,7 @@ def meilleur_h (histoMod, Calendrier, dateFinMod, hPrev, tailleBlocs) :
     nb = len(histoMod)//365 - 1  # Nombre de périodes testées
     
     for i in range(1,nb) : 
-        
+
         # On choisit d'essayer de prédire la même période k années avant :
         dateFinMod2 = dateFinMod - timedelta(days=i*365) 
         
@@ -235,13 +235,13 @@ def meilleur_h (histoMod, Calendrier, dateFinMod, hPrev, tailleBlocs) :
     
         # Test de chacun des candidats h, et choix de celui avec la plus petite erreur RMSE :
     
-        meilleur_h = candidats_h[0]
-        previsions = previsions_NP_h_fixe (histoMod2, Calendrier, dateFinMod2, infosBlocs2 , hPrev, meilleur_h) 
+        meilleur_h = candidats_h[0]        
+        previsions = previsions_NP_h_fixe (histoMod2, Calendrier, dateFinMod2, infosBlocs2 , hPrev, meilleur_h, 0, tailleBlocs) 
         meilleure_erreur = rmse(realise, list(previsions['PAX_NP']))
     
         for k in range(1,len(candidats_h)) :
             h = candidats_h[k]
-            previsions = previsions_NP_h_fixe (histoMod2, Calendrier, dateFinMod2, infosBlocs2 , 365, h)
+            previsions = previsions_NP_h_fixe (histoMod2, Calendrier, dateFinMod2, infosBlocs2 , hPrev, h, 0, tailleBlocs) 
             erreur = rmse(realise, list(previsions['PAX_NP']))
         
             if erreur < meilleure_erreur :
@@ -323,9 +323,9 @@ def previsions_NP (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic = 0.9
 #### TEST ####
 
 # dateDebMod = pd.to_datetime("2008-01-01")
-# dateFinMod = pd.to_datetime("2016-01-15")
+# dateFinMod = pd.to_datetime("2015-12-31")
 
-# hPrev = 365
+# hPrev = 7
     
 # database = pd.read_csv("database_sieges.csv",low_memory=False,decimal=',')
 # database = database.astype({'Date': 'datetime64[ns]','PAX_FQM':'float','Sièges Corrections_ICI':'float','Coeff_Rempl':'float','Coeff_Rempl_FQM':'float'})
@@ -340,10 +340,9 @@ def previsions_NP (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic = 0.9
             
 # histoMod_2 = histoMod[(histoMod['Faisceau']=='Schengen') & (histoMod['ArrDep']=='Arrivée')]
 
-# histoMod_2.to_csv('histoMod.csv')
+# ##histoMod_2.to_csv('histoMod.csv')
 
 # histoPrev_2 = histoPrev[(histoPrev['Faisceau']=='Schengen')&(histoPrev['ArrDep']=='Arrivée')]
-# histoPrev_2.to_csv('histoPrev.csv')
+# ##histoPrev_2.to_csv('histoPrev.csv')
 
-# test = previsions_NP(histoMod_2, Calendrier, dateDebMod, dateFinMod, hPrev)
-
+# test = previsions_NP(histoMod_2, Calendrier, dateDebMod, dateFinMod, hPrev, ic=0.95, tailleBlocs=365)
