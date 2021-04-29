@@ -312,8 +312,8 @@ def gridsearch_h (X_train, y_train, Calendrier, dateFinTrain, hPrev):
         infosBlocs = infos_blocs(X_train, parametres[k][1])
         # prévisions sur la période de validation
         previsions = previsions_NP_h_fixe (X_train, Calendrier, dateFinTrain, infosBlocs, len(y_train), h=parametres[k][0], ic = 0, tailleBlocs= parametres[k][1]) 
-        print('prevPAXNP',list(previsions['PAX_NP']))
-        print('prevytrain',list(y_train))
+        # print('prevPAXNP',list(previsions['PAX_NP']))
+        # print('prevytrain',list(y_train))
         l_rmse.append(np.mean(rmse(list(previsions['PAX_NP']), list(y_train)))) 
 
     # print( "Meilleur rmse: ", min(l_rmse) )
@@ -326,37 +326,51 @@ def gridsearch_h (X_train, y_train, Calendrier, dateFinTrain, hPrev):
 
 
 #%% Test final 
-dateDebMod = pd.to_datetime("2008-01-01")
-dateFinMod = pd.to_datetime("2015-12-31")
+# dateDebMod = pd.to_datetime("2008-01-01")
+# dateFinMod = pd.to_datetime("2015-12-31")
 
-hPrev = 7
+# hPrev = 7
    
 ##### TEST 2 ##### 
 
-dateDebMod = pd.to_datetime('2009-01-01')
-dateFinMod = pd.to_datetime('2014-01-30')
+# dateDebMod = pd.to_datetime('2009-01-01')
+# dateFinMod = pd.to_datetime('2014-01-30')
 
 
     
-database = pd.read_csv("/Users/h2jw/Downloads/database_sieges.csv",low_memory=False,decimal=',')
-database = database.astype({'Date': 'datetime64[ns]','PAX_FQM':'float','Sièges Corrections_ICI':'float','Coeff_Rempl':'float','Coeff_Rempl_FQM':'float'})
-database = database.groupby(['Date','Faisceau','ArrDep']).agg({'PAX':'sum','PAX_FQM':'sum','Sièges Corrections_ICI':'sum','Coeff_Rempl':'mean','Coeff_Rempl_FQM':'mean'}).reset_index()
-Calendrier = pd.read_csv("/Users/h2jw/Documents/GitHub/StatApp_2020/Data/Calendrier/Calendrier.csv", dayfirst = True , sep = ';' , parse_dates = ['Date'])
+# database = pd.read_csv("/Users/h2jw/Downloads/database_sieges.csv",low_memory=False,decimal=',')
+# database = database.astype({'Date': 'datetime64[ns]','PAX_FQM':'float','Sièges Corrections_ICI':'float','Coeff_Rempl':'float','Coeff_Rempl_FQM':'float'})
+# database = database.groupby(['Date','Faisceau','ArrDep']).agg({'PAX':'sum','PAX_FQM':'sum','Sièges Corrections_ICI':'sum','Coeff_Rempl':'mean','Coeff_Rempl_FQM':'mean'}).reset_index()
+# Calendrier = pd.read_csv("/Users/h2jw/Documents/GitHub/StatApp_2020/Data/Calendrier/Calendrier.csv", dayfirst = True , sep = ';' , parse_dates = ['Date'])
 
 
-histoMod = database[(database['Date']>=dateDebMod) & (database['Date']<=dateFinMod)]
+# histoMod = database[(database['Date']>=dateDebMod) & (database['Date']<=dateFinMod)]
 
-histoPrev = database[(database['Date']>dateFinMod) & (database['Date']<=dateFinMod+timedelta(days = hPrev))]
+# histoPrev = database[(database['Date']>dateFinMod) & (database['Date']<=dateFinMod+timedelta(days = hPrev))]
     
             
-histoMod_2 = histoMod[(histoMod['Faisceau']=='Schengen') & (histoMod['ArrDep']=='Arrivée')]
+# histoMod_2 = histoMod[(histoMod['Faisceau']=='Schengen') & (histoMod['ArrDep']=='Arrivée')]
 
-##histoMod_2.to_csv('histoMod.csv')
+# ##histoMod_2.to_csv('histoMod.csv')
 
-histoPrev_2 = histoPrev[(histoPrev['Faisceau']=='Schengen')&(histoPrev['ArrDep']=='Arrivée')]
-##histoPrev_2.to_csv('histoPrev.csv')
+# histoPrev_2 = histoPrev[(histoPrev['Faisceau']=='Schengen')&(histoPrev['ArrDep']=='Arrivée')]
+# ##histoPrev_2.to_csv('histoPrev.csv')
 
 
-test_2 = previsions_NP(histoMod_2, Calendrier, dateDebMod, dateFinMod, hPrev=7, ic=0.95, tailleBlocs=365, gridsearch=False)
-test_3 = previsions_NP(histoMod_2, Calendrier, dateDebMod, dateFinMod, hPrev=7, ic=0.95, tailleBlocs=365, gridsearch=True)
+# test_2 = previsions_NP(histoMod_2, Calendrier, dateDebMod, dateFinMod, hPrev=7, ic=0.95, tailleBlocs=365, gridsearch=False)
+# test_3 = previsions_NP(histoMod_2, Calendrier, dateDebMod, dateFinMod, hPrev=7, ic=0.95, tailleBlocs=365, gridsearch=True)
+
+# #%% 
+# import seaborn as sns
+# import matplotlib.pyplot as plt
+# fig, ax = plt.subplots()
+# test_2[['Date', 'PAX_NP']].set_index('Date').plot(ax = ax, c='blue',style='o-')
+# test_3[['Date', 'PAX_NP']].set_index('Date').plot(ax = ax, c='red',style='o-')
+# histoPrev_2[['Date','PAX']].set_index('Date').plot(ax = ax, c="green")
+
+
+
+
+
+
 
