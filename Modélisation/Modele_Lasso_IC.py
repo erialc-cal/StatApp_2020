@@ -105,31 +105,41 @@ def previsions_Lasso (histoMod, Calendrier, dateDebMod, dateFinMod, hPrev, ic=0.
 
     
 def prediction_interval(model, X_train, y_train, x0, alpha):
-  ''' Compute a prediction interval around the model's prediction of x0.
+  ''' Fonction qui réalise un intervalle de prédiction de niveau alpha pour un modèle entré sur un ensemble d'entraînement et un ensemble de prédiction.
 
-  INPUT
-    model
-      A predictive model with `fit` and `predict` methods
-    X_train: numpy array of shape (n_samples, n_features)
-      A numpy array containing the training input data
-    y_train: numpy array of shape (n_samples,)
-      A numpy array containing the training target data
-    x0 : A new data point, of shape (n_features,)
-    alpha: 1-ic
-      The prediction uncertainty
+    Parameters
+    ----------
+    model : 
+        Un modèle de prédiction avec les méthodes 'fit' et 'predict' (par ex. LassoCV(), LinearRegression() ou RandomForest())
+    X_train : numpy array (n_samples, n_features)
+        Array numpy contenant l'ensemble d'entraînement
+    y_train : numpy array (n_samples,)
+        Array numpy du réalisé correspondant au set d'entraînement
+    x0 : numpy array (n_features,)
+        Array numpy contenant l'ensemble à prédire
+    alpha : float 
+        Niveau de l'intervalle de prédiction 
 
-  OUTPUT
-    A triple (`lower`, `pred`, `upper`) with `pred` being the prediction
-    of the model and `lower` and `upper` constituting the lower- and upper
-    bounds for the prediction interval around `pred`, respectively. '''
+    Returns
+    -------
+    percentiles[0] : numpy array
+	borne inférieure de l'intervalle de prédiction de niveau alpha
+    model.predict(x0) : numpy array 
+	Prédiction 
+    percentiles[1] :  numpy array
+	borne inférieure de l'intervalle de prédiction de niveau alpha
 
-  # Number of training samples
+   """
+
+  # Echantillons d'entraînement 
   n = X_train.shape[0]
 
-  # We choose to make 1000 bootstraps
+  # On fait 1000 bootstraps
   nbootstraps=1000
 
-  # Compute the m_i's and the validation residuals
+
+
+  # Estimation des résidus validation et entraînement par bootstraps
   bootstrap_preds, val_residuals = pd.DataFrame(), []
   for b in trange(nbootstraps):
     train_idxs = np.random.choice(range(n), size = n, replace = True)
@@ -138,22 +148,22 @@ def prediction_interval(model, X_train, y_train, x0, alpha):
     preds = model.predict(X_train[val_idxs])
     val_residuals.append(y_train[val_idxs] - preds)
     
-
+   # Estimation par la prédiction centrée du bruit
     bootstrap_preds[b] = model.predict(x0)
   bootstrap_preds -= np.mean(bootstrap_preds)
   val_residuals = np.concatenate(val_residuals)
 
-  # Compute the prediction and the training residuals
+  # Prédiction sur le modèle et résidus d'entraînement
   model.fit(X_train, y_train)
   preds = model.predict(X_train)
   train_residuals = y_train - preds
 
-  # Take percentiles of the training-and validation residuals to enable
-  # comparisons between them
+  # Correction de l'overfitting : arbitrage résidus de validation et d'entraînement 
   val_residuals = np.percentile(val_residuals, q = np.arange(100))
   train_residuals = np.percentile(train_residuals, q = np.arange(100))
 
-  # Compute the .632+ bootstrap estimate for the sample noise and bias
+  # Estimation des résidus corrigés : choix du cadre .632+ bootstrap
+
   no_information_error = np.mean(np.abs(np.random.permutation(y_train) - \
     np.random.permutation(preds)))
       
@@ -163,7 +173,8 @@ def prediction_interval(model, X_train, y_train, x0, alpha):
   weight = .632 / (1 - .368 * relative_overfitting_rate)
   residuals = (1 - weight) * train_residuals + weight * val_residuals
 
-  # Construct the C set and get the percentiles
+  # Construction de l'intervalle de prédiction et percentiles d'ordre alpha
+
   C = np.array([m + o for m in bootstrap_preds for o in residuals])
   qs = [100 * alpha / 2, 100 * (1 - alpha / 2)]
   percentiles = np.percentile(C, q = qs)
