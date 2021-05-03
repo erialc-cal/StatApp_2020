@@ -129,7 +129,7 @@ def prediction_interval(model, X_train, y_train, x0, alpha):
     percentiles[1] :  numpy array
 	borne inférieure de l'intervalle de prédiction de niveau alpha
 
-   """
+   '''
 
   # Echantillons d'entraînement 
   n = X_train.shape[0]
