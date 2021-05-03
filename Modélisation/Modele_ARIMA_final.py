@@ -30,7 +30,7 @@ def ordre_ARIMA(histoMod, dateDebMod, dateFinMod):
 
 
 
-def previsions_ARIMA(histoMod, dateDebMod, dateFinMod, hPrev, ic = 0.95) :
+def previsions_ARIMA(histoMod, dateDebMod, dateFinMod, hPrev, ic) :
     
     histoMod = histoMod.reset_index(drop = True)
     coupe = np.where(histoMod['Date'] == dateFinMod)[0][0]
@@ -45,8 +45,13 @@ def previsions_ARIMA(histoMod, dateDebMod, dateFinMod, hPrev, ic = 0.95) :
     new_dates =pd.date_range(start = dateFinMod  + timedelta(1), end = dateFinMod  + timedelta(hPrev))
     PrevisionsARIMA['Date'] = new_dates
     PrevisionsARIMA['PAX_ARIMA'] = prediction.predicted_mean.values
-    PrevisionsARIMA['IC'+str(int(ic*100))+'_low_ARIMA'] = prediction.conf_int(alpha = 1-ic)['lower PAX'].values
-    PrevisionsARIMA['IC'+str(int(ic*100))+'_up_ARIMA'] = prediction.conf_int(alpha = 1-ic)['upper PAX'].values
+    
+    if ic == 0:
+        PrevisionsARIMA['IC'+str(int(ic*100))+'_low_ARIMA'] = 0
+        PrevisionsARIMA['IC'+str(int(ic*100))+'_up_ARIMA'] = 0
+    else: 
+        PrevisionsARIMA['IC'+str(int(ic*100))+'_low_ARIMA'] = prediction.conf_int(alpha = 1-ic)['lower PAX'].values
+        PrevisionsARIMA['IC'+str(int(ic*100))+'_up_ARIMA'] = prediction.conf_int(alpha = 1-ic)['upper PAX'].values
     
     return(PrevisionsARIMA)
 
@@ -58,6 +63,7 @@ def previsions_ARIMA(histoMod, dateDebMod, dateFinMod, hPrev, ic = 0.95) :
 # dateFinMod = pd.to_datetime("2016-01-15")
 
 # hPrev = 365
+# ic = 0.95
     
 # database = pd.read_csv("database_sieges.csv",low_memory=False,decimal=',')
 # database = database.astype({'Date': 'datetime64[ns]','PAX_FQM':'float','Sièges Corrections_ICI':'float','Coeff_Rempl':'float','Coeff_Rempl_FQM':'float'})
@@ -66,7 +72,7 @@ def previsions_ARIMA(histoMod, dateDebMod, dateFinMod, hPrev, ic = 0.95) :
 # histoMod = database[(database['Date']>=dateDebMod) & (database['Date']<=dateFinMod)]
 # histoMod_2 = histoMod[(histoMod['Faisceau']=='Schengen') & (histoMod['ArrDep']=='Arrivée')]
            
-# test = previsions_ARIMA (histoMod_2, dateDebMod, dateFinMod, hPrev)
+# test = previsions_ARIMA (histoMod_2, dateDebMod, dateFinMod, hPrev, ic)
 # print(test)
 
 
