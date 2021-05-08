@@ -37,7 +37,7 @@ def ordre_SARIMA(histoMod, dateDebMod, dateFinMod):
 
 
 
-def previsions_SARIMA (histoMod, dateDebMod, dateFinMod, hPrev, ic) :
+def previsions_SARIMA (histoMod, dateDebMod, dateFinMod, hPrev, ic = 0.95) :
     
     histoMod = histoMod.reset_index(drop = True)
     coupe = np.where(histoMod['Date'] == dateFinMod)[0][0]
@@ -53,10 +53,10 @@ def previsions_SARIMA (histoMod, dateDebMod, dateFinMod, hPrev, ic) :
     PrevisionsSARIMA['Date'] = new_dates
     PrevisionsSARIMA['PAX_SARIMA'] = prediction.predicted_mean.values
     
-    if ic == 0:
-        PrevisionsARIMA['IC'+str(int(ic*100))+'_low_ARIMA'] = 0
-        PrevisionsARIMA['IC'+str(int(ic*100))+'_up_ARIMA'] = 0
-    else: 
+    if ic == 0 :
+        PrevisionsSARIMA['IC'+str(int(ic*100))+'_low_SARIMA'] = [0 for k in range(hPrev)]
+        PrevisionsSARIMA['IC'+str(int(ic*100))+'_up_SARIMA'] = [0 for k in range(hPrev)]        
+    else :     
         PrevisionsSARIMA['IC'+str(int(ic*100))+'_low_SARIMA'] = prediction.conf_int(alpha = 1-ic)['lower PAX'].values
         PrevisionsSARIMA['IC'+str(int(ic*100))+'_up_SARIMA'] = prediction.conf_int(alpha = 1-ic)['upper PAX'].values
     
@@ -70,7 +70,6 @@ def previsions_SARIMA (histoMod, dateDebMod, dateFinMod, hPrev, ic) :
 # dateFinMod = pd.to_datetime("2016-01-15")
 
 # hPrev = 365
-# ic = 0.95
     
 # database = pd.read_csv("database_sieges.csv",low_memory=False,decimal=',')
 # database = database.astype({'Date': 'datetime64[ns]','PAX_FQM':'float','Sièges Corrections_ICI':'float','Coeff_Rempl':'float','Coeff_Rempl_FQM':'float'})
@@ -79,7 +78,7 @@ def previsions_SARIMA (histoMod, dateDebMod, dateFinMod, hPrev, ic) :
 # histoMod = database[(database['Date']>=dateDebMod) & (database['Date']<=dateFinMod)]
 # histoMod_2 = histoMod[(histoMod['Faisceau']=='Schengen') & (histoMod['ArrDep']=='Arrivée')]
            
-# test = previsions_SARIMA(histoMod_2, dateDebMod, dateFinMod, hPrev,ic)
+# test = previsions_SARIMA(histoMod_2, dateDebMod, dateFinMod, hPrev)
 # print(test)
 
 
@@ -98,3 +97,64 @@ def previsions_SARIMA (histoMod, dateDebMod, dateFinMod, hPrev, ic) :
 # ax.set_ylabel('PAX')
 # plt.legend()
 # plt.show()
+
+
+
+
+
+#### TEST - Réalisation des prévisions Sarima à part ####
+
+# dateDebMod = pd.to_datetime("2008-01-01")
+# dateFinMod = pd.to_datetime("2015-12-31")
+
+
+# hPrev = 7   # faire avec : 7, 31+29+31, 365
+# ic = 0.95   # Seuil de l'intervalle de confiance souhaité
+
+    
+# database = pd.read_csv("database_sieges.csv",low_memory=False,decimal=',')
+# database = database.astype({'Date': 'datetime64[ns]','PAX_FQM':'float','Sièges Corrections_ICI':'float','Coeff_Rempl':'float','Coeff_Rempl_FQM':'float'})
+# database = database.groupby(['Date','Faisceau','ArrDep']).agg({'PAX':'sum','PAX_FQM':'sum','Sièges Corrections_ICI':'sum','Coeff_Rempl':'mean','Coeff_Rempl_FQM':'mean'}).reset_index()
+
+# Calendrier = pd.read_csv("Calendrier.csv", dayfirst = True , sep = ';' , parse_dates = ['Date'])
+
+# histoMod = database[(database['Date']>=dateDebMod) & (database['Date']<=dateFinMod)]
+# #     # histoMod.to_csv("HistoMod.csv")
+    
+# histoPrev = database[(database['Date']>=dateDebMod) & (database['Date']<=dateFinMod+timedelta(days = hPrev))]
+        
+
+
+# Prev_Sarima_1 = pd.DataFrame()
+
+# for faisceau in ['National', 'Schengen', 'Autre UE', 'Dom Tom', 'International']: 
+#     for mvt in ['Départ']: #, 'Arrivée']: 
+            
+#         histoMod_2 = histoMod[(histoMod['Faisceau']==faisceau) & (histoMod['ArrDep']==mvt)]
+
+# #                 # Modèle Sarima :
+#         prev_Sarima = previsions_SARIMA(histoMod_2, dateDebMod, dateFinMod, hPrev, ic)
+#         Prev_Sarima_1 = pd.concat([Prev_Sarima_1, prev_Sarima],ignore_index=True) 
+
+# # Prev_Sarima_1.to_csv("Prev_Sarima_1.csv")  
+
+               
+# # Ajout des prévisions aux autres :          
+   
+
+# autres_pred = pd.read_csv("Previsions_"+str(hPrev)+"j.csv",low_memory=False,decimal=',')
+# autres_pred = autres_pred.astype({'Date': 'datetime64[ns]'})
+# autres_pred.drop(columns=["PAX_SARIMA","IC95_low_SARIMA","IC95_up_SARIMA"],inplace=True)
+
+
+# # Prev_Sarima_1 = pd.read_csv('Prev_Sarima_1.csv',low_memory=False,decimal=',')
+# # Prev_Sarima_1 = Prev_Sarima_1.astype({'Date': 'datetime64[ns]'})
+# # Prev_Sarima = pd.concat([Prev_Sarima_1,Prev_Sarima_2])
+# # Prev_Sarima = Prev_Sarima.reset_index()
+       
+# resultat = pd.concat([autres_pred.set_index(['Date','Faisceau','ArrDep']),
+#                                  Prev_Sarima_1.set_index(['Date','Faisceau','ArrDep'])],axis=1)
+
+# resultat.to_csv("Previsions_"+str(hPrev)+"j.csv")
+
+
