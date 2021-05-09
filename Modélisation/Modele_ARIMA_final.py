@@ -24,7 +24,10 @@ def ordre_ARIMA(histoMod, dateDebMod, dateFinMod):
     coupe = np.where(histoMod['Date'] == dateFinMod)[0][0]
     train = histoMod[histoMod.index <= coupe]
     
-    stepwise_fit = auto_arima(train['PAX'], suppress_warnings=True)           
+    stepwise_fit = auto_arima(train['PAX'], 
+                              error_action='ignore', 
+                              suppress_warnings=True, 
+                              stepwise=True)           
 
     return(stepwise_fit.order)
 

@@ -37,7 +37,7 @@ def ordre_SARIMA(histoMod, dateDebMod, dateFinMod):
 
 
 
-def previsions_SARIMA (histoMod, dateDebMod, dateFinMod, hPrev, ic) :
+def previsions_SARIMA (histoMod, dateDebMod, dateFinMod, hPrev, ic = 0.95) :
     
     histoMod = histoMod.reset_index(drop = True)
     coupe = np.where(histoMod['Date'] == dateFinMod)[0][0]
