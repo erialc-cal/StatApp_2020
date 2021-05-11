@@ -24,44 +24,18 @@ def ordre_SARIMA(histoMod, dateDebMod, dateFinMod):
     coupe = np.where(histoMod['Date'] == dateFinMod)[0][0]
     train = histoMod[histoMod.index <= coupe]
     
-    stepwise_fit = auto_arima(train['PAX'], start_p=1, start_q=1,
-                         test='adf',
+    stepwise_fit = auto_arima(train['PAX'], start_p=0, start_q=0,
                          max_p=3, max_q=3, m=12,
                          start_P=0, seasonal=True,
                          d=None, D=1, trace=True,
                          error_action='ignore',  
                          suppress_warnings=True, 
-                         stepwise=True)       
+                         stepwise=True,
+                         information_criterion = 'bic')
 
     return stepwise_fit.order, stepwise_fit.seasonal_order
 
 
-
-def previsions_SARIMA (histoMod, dateDebMod, dateFinMod, hPrev, ic) :
-    
-    histoMod = histoMod.reset_index(drop = True)
-    coupe = np.where(histoMod['Date'] == dateFinMod)[0][0]
-    train = histoMod[histoMod.index <= coupe]
-    
-    ordres, ordres_sais = ordre_SARIMA(histoMod, dateDebMod, dateFinMod)
-    model = SARIMAX(train['PAX'], order = ordres, seasonal_order = ordres_sais)
-    model_fit = model.fit(disp =-1)
-    
-    prediction = model_fit.get_prediction(start = len(train) - hPrev + 1, end = len(train), freq = 'A')
-    PrevisionsSARIMA = pd.DataFrame(histoMod[["ArrDep" , "Faisceau"]]).head(hPrev)
-    new_dates =pd.date_range(start = dateFinMod  + timedelta(1), end = dateFinMod  + timedelta(hPrev))
-    PrevisionsSARIMA['Date'] = new_dates
-    PrevisionsSARIMA['PAX_SARIMA'] = prediction.predicted_mean.values
-    
-    if ic == 0:
-        PrevisionsARIMA['IC'+str(int(ic*100))+'_low_ARIMA'] = 0
-        PrevisionsARIMA['IC'+str(int(ic*100))+'_up_ARIMA'] = 0
-    else: 
-        PrevisionsSARIMA['IC'+str(int(ic*100))+'_low_SARIMA'] = prediction.conf_int(alpha = 1-ic)['lower PAX'].values
-        PrevisionsSARIMA['IC'+str(int(ic*100))+'_up_SARIMA'] = prediction.conf_int(alpha = 1-ic)['upper PAX'].values
-    
-    return(PrevisionsSARIMA)
-    
 
 ### Validité des modèles
 
@@ -75,7 +49,7 @@ dateDebMod = pd.to_datetime("2007-01-01")
 dateFinMod = pd.to_datetime("2016-01-15")
 
 histoMod = database[(database['Date']>=dateDebMod) & (database['Date']<=dateFinMod)]
-histoMod = histoMod[(histoMod['Faisceau']=='International') & (histoMod['ArrDep']=='Arrivée')]
+histoMod = histoMod[(histoMod['Faisceau']=='Autre UE') & (histoMod['ArrDep']=='Départ')]
 #A ré-adapter selon le faisceau et le type de mouvement qu'on étudie
 
 histoMod = histoMod.reset_index(drop = True)
@@ -88,9 +62,12 @@ res = SARIMAX(train['PAX'], order = ordres, seasonal_order = ordres_sais).fit(di
 sm.stats.acorr_ljungbox(res.resid, lags=12, return_df=True) #Test de Ljung-Box pour l'autocorrélation des résidus
 res.summary() #Pour voir la significativité des coefficients
 
+res = SARIMAX(train['PAX'], order = (0,0,2), seasonal_order =  (1, 1, 1, 12)).fit(disp = 0)
+sm.stats.acorr_ljungbox(res.resid, lags=[2*12], return_df=True, model_df=2) 
 
-
-
-
+from scipy import stats
+lj = sm.stats.acorr_ljungbox(res.resid, lags = 10)
+corrected_pval = stats.chi2.sf(lj[-1], 1)
+print(corrected_pval)
 
 
