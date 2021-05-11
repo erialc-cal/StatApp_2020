@@ -8,13 +8,7 @@ Created on Sat Apr  3 15:03:57 2021
 
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-
-from datetime import timedelta
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-
-# !pip install pmdarima 
-from pmdarima import auto_arima
 
 
 
@@ -63,11 +57,11 @@ sm.stats.acorr_ljungbox(res.resid, lags=12, return_df=True) #Test de Ljung-Box p
 res.summary() #Pour voir la significativité des coefficients
 
 res = SARIMAX(train['PAX'], order = (0,0,2), seasonal_order =  (1, 1, 1, 12)).fit(disp = 0)
-sm.stats.acorr_ljungbox(res.resid, lags=[2*12], return_df=True, model_df=2) 
+sm.stats.acorr_ljungbox(res.resid, lags=2*12, return_df=True, model_df=2) 
 
 from scipy import stats
 lj = sm.stats.acorr_ljungbox(res.resid, lags = 10)
-corrected_pval = stats.chi2.sf(lj[-1], 1)
+corrected_pval = stats.chi2.sf(lj[-1], 24 - 2)
 print(corrected_pval)
 
 

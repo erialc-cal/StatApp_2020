@@ -71,7 +71,7 @@ def validite_param_ARIMA(histoMod, dateDebMod, dateFinMod, p, d, q) :
 # histoMod = database[(database['Date']>=dateDebMod) & (database['Date']<=dateFinMod)]
 # histoMod = histoMod[(histoMod['Faisceau']=='National') & (histoMod['ArrDep']=='Départ')] 
 
-# p, d , q = 3, 0, 2
+# p, d, q = 3, 0, 2
         
 # validite_residus_ARIMA(histoMod, dateDebMod, dateFinMod, p, d, q)
 # validite_param_ARIMA(histoMod, dateDebMod, dateFinMod, p, d, q)
