@@ -20,9 +20,9 @@ def validite_residus_ARIMA(histoMod, dateDebMod, dateFinMod, p, d, q) :
     model = sm.tsa.ARIMA(histoMod["PAX"], (p,d,q)).fit(disp=0)     
     
     lj = sm.stats.acorr_ljungbox(model.resid, lags = 24)
-    corrected_pval = stats.chi2.sf(lj[-1], 24 - p - q)
+    pval_corrigee = stats.chi2.sf(lj[-1], 24 - p - q)
     
-    for i in corrected_pval :
+    for i in pval_corrigee :
         if i < 0.05 :
             bool = False
     
