@@ -27,13 +27,14 @@ def ordre_ARIMA(histoMod, dateDebMod, dateFinMod):
     stepwise_fit = auto_arima(train['PAX'], 
                               error_action='ignore', 
                               suppress_warnings=True, 
-                              stepwise=True)           
+                              stepwise=True,
+                              information_criterion = 'bic')      
 
     return(stepwise_fit.order)
 
 
 
-def previsions_ARIMA(histoMod, dateDebMod, dateFinMod, hPrev, ic = 0.95) :
+def previsions_ARIMA(histoMod, dateDebMod, dateFinMod, hPrev, ic) :
     
     histoMod = histoMod.reset_index(drop = True)
     coupe = np.where(histoMod['Date'] == dateFinMod)[0][0]

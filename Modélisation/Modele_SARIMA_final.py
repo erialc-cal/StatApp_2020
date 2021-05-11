@@ -24,14 +24,14 @@ def ordre_SARIMA(histoMod, dateDebMod, dateFinMod):
     coupe = np.where(histoMod['Date'] == dateFinMod)[0][0]
     train = histoMod[histoMod.index <= coupe]
     
-    stepwise_fit = auto_arima(train['PAX'], start_p=1, start_q=1,
-                         test='adf',
+    stepwise_fit = auto_arima(train['PAX'], start_p=0, start_q=0,
                          max_p=3, max_q=3, m=12,
                          start_P=0, seasonal=True,
                          d=None, D=1, trace=True,
                          error_action='ignore',  
                          suppress_warnings=True, 
-                         stepwise=True)       
+                         stepwise=True,
+                         information_criterion = 'bic')
 
     return stepwise_fit.order, stepwise_fit.seasonal_order
 
@@ -156,5 +156,4 @@ def previsions_SARIMA (histoMod, dateDebMod, dateFinMod, hPrev, ic = 0.95) :
 #                                  Prev_Sarima_1.set_index(['Date','Faisceau','ArrDep'])],axis=1)
 
 # resultat.to_csv("Previsions_"+str(hPrev)+"j.csv")
-
 
