@@ -10,6 +10,9 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from scipy import stats
+import plotly.graph_objs as go
+from  plotly.offline import plot
+
 
 def validite_residus_ARIMA(histoMod, dateDebMod, dateFinMod, p, d, q) :
     
@@ -59,6 +62,10 @@ def validite_param_ARIMA(histoMod, dateDebMod, dateFinMod, p, d, q) :
     else :
         print('Les paramètres ne sont pas significatifs')
     
+def normalite_residus_ARIMA(histoMod, dateDebMod, dateFinMod, p, d, q) :
+    trace = go.Histogram(x=model.resid)
+    plot([motrace])
+
 #Exemple complet d'exécution de ces fonctions : 
         
 # database = pd.read_csv("/Users/victorhuynh/Documents/ENSAE/ENSAE 2A/2A S2/Stat App/StatApp_2020/Data/database_sieges.csv",low_memory=False,decimal=',')
@@ -75,3 +82,4 @@ def validite_param_ARIMA(histoMod, dateDebMod, dateFinMod, p, d, q) :
         
 # validite_residus_ARIMA(histoMod, dateDebMod, dateFinMod, p, d, q)
 # validite_param_ARIMA(histoMod, dateDebMod, dateFinMod, p, d, q)
+
